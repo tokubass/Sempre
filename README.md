@@ -1,14 +1,28 @@
 # NAME
 
-Sempre - It's new $module
+Sempre - Yancha's bot framework using Unruly
 
 # SYNOPSIS
 
     use Sempre;
 
+    my $sp = Sempre->new(
+        name  => 'KokoroChan',
+        tags  => [qw/ public papix /],
+        image => 'http://pyazo.hachiojipm.org/image/iIiLNsbaqwuExX8W139033898032943.png',
+    );
+    
+
+    $sp->post('こころちゃーん' => sub {
+        my $post = shift;
+        return 'こころちゃんって言うなー!';
+    });
+
+    $sp->run;
+
 # DESCRIPTION
 
-Sempre is ...
+Sempre is Yancha's bot framework.
 
 # LICENSE
 

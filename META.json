@@ -1,5 +1,5 @@
 {
-   "abstract" : "It's new $module",
+   "abstract" : "Yancha's bot framework using Unruly",
    "author" : [
       "papix <mail@papix.net>"
    ],
@@ -43,6 +43,8 @@
       },
       "runtime" : {
          "requires" : {
+            "Encode" : "0",
+            "Unruly" : "0",
             "perl" : "5.008005"
          }
       },
@@ -53,5 +55,16 @@
       }
    },
    "release_status" : "unstable",
+   "resources" : {
+      "bugtracker" : {
+         "web" : "https://github.com/papix/Sempre/issues"
+      },
+      "homepage" : "https://github.com/papix/Sempre",
+      "repository" : {
+         "type" : "git",
+         "url" : "git://github.com/papix/Sempre.git",
+         "web" : "https://github.com/papix/Sempre"
+      }
+   },
    "version" : "0.01"
 }
