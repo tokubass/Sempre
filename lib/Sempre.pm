@@ -8,13 +8,11 @@ our $VERSION = "0.01";
 
 sub new {
     my ($class, %opts) = @_;
+
     bless {
-        unruly      => undef,
         id          => 0,
-        post_action => [],
-        read_action => [],
-        name        => $opts{name} || 'Semper',
-        image       => $opts{image} || undef,
+        name        => $opts{name}      || 'Semper',
+        image       => $opts{image}     || undef,
         post_tags   => $opts{post_tags} || [qw/ public /],
         tags        => exists $opts{tags}
             ? { map { $_ => 1 } @{$opts{tags}} }
@@ -29,57 +27,31 @@ sub run {
         url  => 'http://yancha.hachiojipm.org',
         tags => $self->{tags},
     );
-    $self->{unruly}->login($self->{name}, { image => $self->{image} });
 
     my $cv = AnyEvent->condvar;
 
     $self->{unruly}->run(sub {
         my ($client, $socket) = @_;
         $socket->on('user message', sub {
-            my $post = $_[1];
-    
-            return if $post->{is_message_log} || $self->{id} > $post->{id}; # PlusPlus and other.
-            $self->{id} = $post->{id};
-            
-            for my $action (@{$self->{post_action}}) {
-                my $word = $self->_run($post => @{$action});
-                $self->_post($word);
-            }
-            for my $action (@{$self->{read_action}}) {
-                $self->_run($post => @{$action});
-            }
-            return;
+            return $self->_user_message($_[1]);
+        });
+        $socket->on('announcement', sub {
+            return $self->_announcement($_[1]);
         });
     });
 
     $cv->recv;
 }
 
-sub post {
+sub message {
     my $self = shift;
-    push @{$self->{post_action}}, [ @_ ];
+    push @{$self->{message_action}}, [ @_ ];
 }
 
-sub read {
-    my $self = shift;
-    push @{$self->{read_action}}, [ @_ ];
-}
-
-sub _run {
-    my ($self, $post, @action) = @_;
-    my $sub_ref = pop @action;
-    my $cond    = shift @action; 
-    
-    return if ref($sub_ref) ne 'CODE';
-    return $sub_ref->($post) unless defined $cond;
-
-    if (ref($cond) eq 'HASH') {
-        return if exists $cond->{text} && $post->{text} !~ /$cond->{text}/;
-        return if exists $cond->{nick} && $post->{nickname} !~ /$cond->{nick}/;
-    } else {
-        return if $post->{text} !~ /$cond/;
-    }
-    return $sub_ref->($post);
+sub _login {
+    my ($self, $image) = @_;
+    $image ||= $self->{image};
+    $self->{unruly}->login($self->{name}, { image => $image });
 }
 
 sub _post {
@@ -88,6 +60,49 @@ sub _post {
 
     $word .= ' ' . join(' ', map { '#' . uc $_ } @{$self->{post_tags}});
     $self->{unruly}->post($word);
+}
+
+sub _user_message {
+    my ($self, $post) = @_;
+
+    # xxx
+    return if $post->{is_message_log} || $self->{id} > $post->{id}; # PlusPlus and other.
+    $self->{id} = $post->{id};
+    
+    for my $action (@{$self->{message_action}}) {
+        $self->_user_message_run($post => @{$action});
+    }
+}
+
+sub _user_message_run {
+    my ($self, $post, @action) = @_;
+    my $sub_ref = pop @action;
+    my $cond    = shift @action; 
+    
+    return if ref($sub_ref) ne 'CODE';
+    return $self->_call($sub_ref, $post) unless defined $cond;
+
+    if (ref($cond) eq 'HASH') {
+        return if exists $cond->{text} && $post->{text} !~ /$cond->{text}/;
+        return if exists $cond->{nick} && $post->{nickname} !~ /$cond->{nick}/;
+    } else {
+        return if $post->{text} !~ /$cond/;
+    }
+    return $self->_call($sub_ref, $post);
+}
+
+sub _call {
+    my ($self, $sub_ref, @params) = @_;
+    my $retval = $sub_ref->(@params);
+    
+    if (exists $retval->{image}) {
+        $self->_login($retval->{image});
+    } else {
+        $self->_login;
+    }
+    if (exists $retval->{post}) {
+        $self->_post($retval->{post});
+    }
 }
 
 1;

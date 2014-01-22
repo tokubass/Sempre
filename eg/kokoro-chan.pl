@@ -12,12 +12,12 @@ my $sp = Sempre->new(
 
 $sp->post(qr/(こころ|小衣)(ちゃ|た)ーん/ => sub {
     my $post = shift;
-    return 'こころちゃんって言うなー!';
+    return { post => 'こころちゃんって言うなー!' };
 });
 
 $sp->post('父さんだけに倒産' => sub {
     my $post = shift;
-    return 'くうきよめー';
+    return { post => 'くうきよめー' };
 });
 
 $sp->run();
