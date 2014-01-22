@@ -35,9 +35,6 @@ sub run {
         $socket->on('user message', sub {
             return $self->_user_message($_[1]);
         });
-        $socket->on('announcement', sub {
-            return $self->_announcement($_[1]);
-        });
     });
 
     $cv->recv;
@@ -50,8 +47,7 @@ sub message {
 
 sub _login {
     my ($self, $image) = @_;
-    $image ||= $self->{image};
-    $self->{unruly}->login($self->{name}, { image => $image });
+    $self->{unruly}->login($self->{name}, { image => $image || $self->{image} });
 }
 
 sub _post {
@@ -69,40 +65,30 @@ sub _user_message {
     return if $post->{is_message_log} || $self->{id} > $post->{id}; # PlusPlus and other.
     $self->{id} = $post->{id};
     
-    for my $action (@{$self->{message_action}}) {
-        $self->_user_message_run($post => @{$action});
-    }
-}
+    for (@{$self->{message_action}}) {
+        my @action = @{$_};
+        my $sub_ref = pop @action;
+        my $cond    = shift @action; 
+        next if ref($sub_ref) ne 'CODE';
 
-sub _user_message_run {
-    my ($self, $post, @action) = @_;
-    my $sub_ref = pop @action;
-    my $cond    = shift @action; 
-    
-    return if ref($sub_ref) ne 'CODE';
-    return $self->_call($sub_ref, $post) unless defined $cond;
-
-    if (ref($cond) eq 'HASH') {
-        return if exists $cond->{text} && $post->{text} !~ /$cond->{text}/;
-        return if exists $cond->{nick} && $post->{nickname} !~ /$cond->{nick}/;
-    } else {
-        return if $post->{text} !~ /$cond/;
+        if (defined $cond) {
+            if (ref($cond) eq 'HASH') {
+                next if exists $cond->{text} && $post->{text} !~ /$cond->{text}/;
+                next if exists $cond->{nick} && $post->{nickname} !~ /$cond->{nick}/;
+            } else {
+                next if $post->{text} !~ /$cond/;
+            }
+        }
+        $self->_call($sub_ref, $post);
     }
-    return $self->_call($sub_ref, $post);
 }
 
 sub _call {
     my ($self, $sub_ref, @params) = @_;
     my $retval = $sub_ref->(@params);
     
-    if (exists $retval->{image}) {
-        $self->_login($retval->{image});
-    } else {
-        $self->_login;
-    }
-    if (exists $retval->{post}) {
-        $self->_post($retval->{post});
-    }
+    $self->_login($retval->{image});
+    $self->_post($retval->{post}) if exists $retval->{post};
 }
 
 1;
