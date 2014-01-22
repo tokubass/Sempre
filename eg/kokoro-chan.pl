@@ -2,11 +2,10 @@ use strict;
 use warnings;
 use utf8;
 use Sempre;
-use Encode;
 
 my $sp = Sempre->new(
     name      => 'KokoroChan',
-    tags      => [qw/ public papix /],
+    tags      => [qw/ public unruly /],
     image     => 'http://pyazo.hachiojipm.org/image/iIiLNsbaqwuExX8W139033898032943.png',
     post_tags => [qw/ public /],
 );

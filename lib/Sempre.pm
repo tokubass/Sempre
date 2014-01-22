@@ -40,14 +40,15 @@ sub run {
     
             return if $post->{is_message_log} || $self->{id} > $post->{id}; # PlusPlus and other.
             $self->{id} = $post->{id};
-       
+            
             for my $action (@{$self->{post_action}}) {
-                my $word = $self->_run($post => $action);
+                my $word = $self->_run($post => @{$action});
                 $self->_post($word);
             }
             for my $action (@{$self->{read_action}}) {
-                $self->_run($post => $action);
+                $self->_run($post => @{$action});
             }
+            return;
         });
     });
 
@@ -65,13 +66,20 @@ sub read {
 }
 
 sub _run {
-    my ($self, $post => $action) = @_;
-    my ($cond, $sub_ref) = @{$action};
-    $cond = ref($cond) eq 'REGEXP' ? $cond : qr/$cond/;
+    my ($self, $post, @action) = @_;
+    my $sub_ref = pop @action;
+    my $cond    = shift @action; 
     
-    return ref($sub_ref) eq 'CODE' && $post->{text} =~ $cond
-        ? $sub_ref->($post)
-        : undef;
+    return if ref($sub_ref) ne 'CODE';
+    return $sub_ref->($post) unless defined $cond;
+
+    if (ref($cond) eq 'HASH') {
+        return if exists $cond->{text} && $post->{text} !~ /$cond->{text}/;
+        return if exists $cond->{nick} && $post->{nickname} !~ /$cond->{nick}/;
+    } else {
+        return if $post->{text} !~ /$cond/;
+    }
+    return $sub_ref->($post);
 }
 
 sub _post {
