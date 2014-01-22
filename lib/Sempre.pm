@@ -11,9 +11,10 @@ sub new {
 
     bless {
         id          => 0,
-        name        => $opts{name}      || 'Semper',
-        image       => $opts{image}     || undef,
-        post_tags   => $opts{post_tags} || [qw/ public /],
+        name        => $opts{name}       || 'Semper',
+        image       => $opts{image}      || undef,
+        post_tags   => $opts{post_tags}  || [qw/ public /],
+        token_only  => $opts{token_only} || 1,
         tags        => exists $opts{tags}
             ? { map { $_ => 1 } @{$opts{tags}} }
             : { public => 1 },
@@ -24,8 +25,9 @@ sub run {
     my $self = shift;
 
     $self->{unruly} ||= Unruly->new(
-        url  => 'http://yancha.hachiojipm.org',
-        tags => $self->{tags},
+        url        => 'http://yancha.hachiojipm.org',
+        tags       => $self->{tags},
+        token_only => $self->{token_only}
     );
 
     my $cv = AnyEvent->condvar;
@@ -113,7 +115,7 @@ Sempre - Yancha's bot framework using Unruly
     
     $sp->post('こころちゃーん' => sub {
         my $post = shift;
-        return 'こころちゃんって言うなー!';
+        return { post => 'こころちゃんって言うなー!' };
     });
 
     $sp->run;

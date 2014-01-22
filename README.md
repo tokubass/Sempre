@@ -15,7 +15,7 @@ Sempre - Yancha's bot framework using Unruly
 
     $sp->post('こころちゃーん' => sub {
         my $post = shift;
-        return 'こころちゃんって言うなー!';
+        return { post => 'こころちゃんって言うなー!' };
     });
 
     $sp->run;
