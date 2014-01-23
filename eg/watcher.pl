@@ -8,7 +8,7 @@ my $sp = Sempre->new(
     tags      => [qw/ public unruly /],
 );
 
-$sp->read(sub {
+$sp->message(sub {
     my $post = shift;
     warn Encode::encode_utf8($post->{text}) . "\n";
 });

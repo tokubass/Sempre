@@ -10,12 +10,12 @@ my $sp = Sempre->new(
     post_tags => [qw/ public /],
 );
 
-$sp->post(qr/(こころ|小衣)(ちゃ|た)ーん/ => sub {
+$sp->message(qr/(こころ|小衣)(ちゃ|た)ーん/ => sub {
     my $post = shift;
     return { post => 'こころちゃんって言うなー!' };
 });
 
-$sp->post('父さんだけに倒産' => sub {
+$sp->message('父さんだけに倒産' => sub {
     my $post = shift;
     return { post => 'くうきよめー' };
 });

@@ -44,7 +44,6 @@
       "runtime" : {
          "requires" : {
             "Encode" : "0",
-            "Unruly" : "0",
             "perl" : "5.008005"
          }
       },

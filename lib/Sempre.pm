@@ -9,8 +9,18 @@ our $VERSION = "0.01";
 sub new {
     my ($class, %opts) = @_;
 
+    my $url;
+    if ($ENV{PERL_SEMPRE_DEBUG}) {
+        print STDERR "DEBUG MODE (Sempre)\n";
+        $url = $ENV{PERL_SEMPRE_DEBUG};
+    } else {
+        $url = $opts{url};
+    }
+    die "Not found: url" unless defined $url;
+
     bless {
         id          => 0,
+        url         => $url,
         name        => $opts{name}       || 'Semper',
         image       => $opts{image}      || undef,
         post_tags   => $opts{post_tags}  || [qw/ public /],
@@ -25,7 +35,7 @@ sub run {
     my $self = shift;
 
     $self->{unruly} ||= Unruly->new(
-        url        => 'http://yancha.hachiojipm.org',
+        url        => $self->{url}, 
         tags       => $self->{tags},
         token_only => $self->{token_only}
     );
@@ -48,8 +58,8 @@ sub message {
 }
 
 sub _login {
-    my ($self, $image) = @_;
-    $self->{unruly}->login($self->{name}, { image => $image || $self->{image} });
+    my ($self, $image, $name) = @_;
+    $self->{unruly}->login($name || $self->{name}, { image => $image || $self->{image} });
 }
 
 sub _post {
@@ -76,7 +86,7 @@ sub _user_message {
         if (defined $cond) {
             if (ref($cond) eq 'HASH') {
                 next if exists $cond->{text} && $post->{text} !~ /$cond->{text}/;
-                next if exists $cond->{nick} && $post->{nickname} !~ /$cond->{nick}/;
+                next if exists $cond->{name} && $post->{nickname} !~ /$cond->{nick}/;
             } else {
                 next if $post->{text} !~ /$cond/;
             }
@@ -88,8 +98,11 @@ sub _user_message {
 sub _call {
     my ($self, $sub_ref, @params) = @_;
     my $retval = $sub_ref->(@params);
-    
-    $self->_login($retval->{image});
+  
+    return if ref($retval) ne 'HASH';
+    return unless defined $retval;
+
+    $self->_login($retval->{image}, $retval->{name});
     $self->_post($retval->{post}) if exists $retval->{post};
 }
 
