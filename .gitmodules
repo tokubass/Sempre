@@ -1,3 +1,3 @@
 [submodule "modules/Unruly"]
 	path = modules/Unruly
-	url = git@github.com:ytnobody/Unruly.git
+    url = https://github.com/ytnobody/Unruly.git
