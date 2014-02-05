@@ -3,20 +3,18 @@ use 5.008005;
 use strict;
 use warnings;
 
+use Carp;
 use Unruly;
+
 our $VERSION = "0.01";
 
 sub new {
     my ($class, %opts) = @_;
 
-    my $url;
-    if ($ENV{PERL_SEMPRE_DEBUG}) {
-        print STDERR "DEBUG MODE (Sempre)\n";
-        $url = $ENV{PERL_SEMPRE_DEBUG};
-    } else {
-        $url = $opts{url};
-    }
-    die "Not found: url" unless defined $url;
+    my $url = $ENV{PERL_SEMPRE_DEBUG}
+        ? $ENV{PERL_SEMPRE_DEBUG}
+        : $opts{url};
+    Carp::croak "Not found: url" unless defined $url;
 
     bless {
         id          => 0,
@@ -39,7 +37,8 @@ sub run {
         tags       => $self->{tags},
         token_only => $self->{token_only}
     );
-
+    $self->{unruly}->login($self->{name}, { image => $self->{image} || undef });
+    
     my $cv = AnyEvent->condvar;
 
     $self->{unruly}->run(sub {
@@ -55,11 +54,6 @@ sub run {
 sub message {
     my $self = shift;
     push @{$self->{message_action}}, [ @_ ];
-}
-
-sub _login {
-    my ($self, $image, $name) = @_;
-    $self->{unruly}->login($name || $self->{name}, { image => $image || $self->{image} });
 }
 
 sub _post {
@@ -102,7 +96,6 @@ sub _call {
     return if ref($retval) ne 'HASH';
     return unless defined $retval;
 
-    $self->_login($retval->{image}, $retval->{name});
     $self->_post($retval->{post}) if exists $retval->{post};
 }
 
