@@ -2,54 +2,61 @@ package Sempre;
 use 5.008005;
 use strict;
 use warnings;
+use parent 'Exporter';
 
 use Carp;
-use Unruly;
+use AnyEvent;
+use Sempre::Bot;
 
 our $VERSION = "0.01";
+our @EXPORT = qw/
+    bot
+    image
+    tags
+    post_tags
+    action
+    run
+    token_only
+/;
+our $BOT;
+our $UNRULY; 
 
-sub new {
-    my ($class, %opts) = @_;
+sub bot {
+    my ($name, $code) = @_;
 
-    my $url = $ENV{PERL_SEMPRE_DEBUG}
-        ? $ENV{PERL_SEMPRE_DEBUG}
-        : $opts{url};
-    Carp::croak "Not found: url" unless defined $url;
+    my ($image, $token_only, @tags, @post_tags, @action);
 
-    bless {
-        id          => 0,
-        url         => $url,
-        name        => $opts{name}       || 'Semper',
-        image       => $opts{image}      || undef,
-        post_tags   => $opts{post_tags}  || [qw/ public /],
-        token_only  => $opts{token_only} || 1,
-        tags        => exists $opts{tags}
-            ? { map { $_ => 1 } @{$opts{tags}} }
-            : { public => 1 },
-    }, $class;
+    my $dest_class = caller();
+    no strict 'refs';
+    local *{"$dest_class\::image"}      = sub ($) { $image      = shift };
+    local *{"$dest_class\::tags"}       = sub (@) { @tags       = @_ };
+    local *{"$dest_class\::post_tags"}  = sub (@) { @post_tags  = @_ };
+    local *{"$dest_class\::token_only"} = sub (@) { $token_only = shift || 0 };
+    local *{"$dest_class\::action"}     = sub (@) { push @action, [ @_ ] };
+
+    $code->();
+
+    my $bot = Sempre::Bot->new(
+        name       => $name,
+        image      => $image,
+        token_only => $token_only,
+        tags       => \@tags,
+        post_tags  => \@post_tags,
+    );
+    $bot->action(@{$_}) for @action;
+    $bot->init;
+    
+    push @{$BOT}, $bot;
 }
 
 sub run {
-    my $self = shift;
-
-    $self->{unruly} ||= Unruly->new(
-        url        => $self->{url}, 
-        tags       => $self->{tags},
-        token_only => $self->{token_only}
-    );
-    $self->{unruly}->login($self->{name}, { image => $self->{image} || undef });
-    
     my $cv = AnyEvent->condvar;
-
-    $self->{unruly}->run(sub {
-        my ($client, $socket) = @_;
-        $socket->on('user message', sub {
-            return $self->_user_message($_[1]);
-        });
-    });
-
     $cv->recv;
 }
+
+1;
+
+__END__
 
 sub message {
     my $self = shift;
@@ -64,30 +71,6 @@ sub _post {
     $self->{unruly}->post($word);
 }
 
-sub _user_message {
-    my ($self, $post) = @_;
-
-    # xxx
-    return if $post->{is_message_log} || $self->{id} > $post->{id}; # PlusPlus and other.
-    $self->{id} = $post->{id};
-    
-    for (@{$self->{message_action}}) {
-        my @action = @{$_};
-        my $sub_ref = pop @action;
-        my $cond    = shift @action; 
-        next if ref($sub_ref) ne 'CODE';
-
-        if (defined $cond) {
-            if (ref($cond) eq 'HASH') {
-                next if exists $cond->{text} && $post->{text} !~ /$cond->{text}/;
-                next if exists $cond->{name} && $post->{nickname} !~ /$cond->{nick}/;
-            } else {
-                next if $post->{text} !~ /$cond/;
-            }
-        }
-        $self->_call($sub_ref, $post);
-    }
-}
 
 sub _call {
     my ($self, $sub_ref, @params) = @_;

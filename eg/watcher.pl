@@ -1,16 +1,16 @@
 use strict;
 use warnings;
 use utf8;
-use Sempre;
+use Sempre::Bot;
 use Encode;
 
-my $sp = Sempre->new(
-    tags      => [qw/ public unruly /],
+my $bot = Sempre::Bot->new(
+    tags => [qw/ public unruly /],
 );
 
-$sp->message(sub {
+$bot->action(sub {
     my $post = shift;
     warn Encode::encode_utf8($post->{text}) . "\n";
 });
 
-$sp->run();
+$bot->run();

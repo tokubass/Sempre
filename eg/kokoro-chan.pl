@@ -1,23 +1,24 @@
 use strict;
 use warnings;
 use utf8;
-use Sempre;
+use Sempre::Bot;
+use AnyEvent;
 
-my $sp = Sempre->new(
+my $bot = Sempre::Bot->new(
     name      => 'KokoroChan',
     tags      => [qw/ public unruly /],
     image     => 'http://pyazo.hachiojipm.org/image/iIiLNsbaqwuExX8W139033898032943.png',
     post_tags => [qw/ public /],
 );
 
-$sp->message(qr/(こころ|小衣)(ちゃ|た)ーん/ => sub {
+$bot->action(qr/(こころ|小衣)(ちゃ|た)ーん/ => sub {
     my $post = shift;
     return { post => 'こころちゃんって言うなー!' };
 });
 
-$sp->message('父さんだけに倒産' => sub {
+$bot->action('父さんだけに倒産' => sub {
     my $post = shift;
     return { post => 'くうきよめー' };
 });
 
-$sp->run();
+$bot->run();
